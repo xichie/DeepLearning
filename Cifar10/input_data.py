@@ -19,23 +19,23 @@ class Cifar10:
     
     def _load_data(self):
         dic = {}
-        images = np.zeros([10000, 32,32,3])
+        images = np.zeros([10000, 3,32,32])
         labels = []
         files = os.listdir(self.path)
         for file in files:
             if re.match("data_batch_*", file):          
                 with open(self.path +"\\" + file, 'rb') as fo:       #load train data
                     dic = pickle.load(fo, encoding = 'bytes')
-                    images = np.r_[images, dic[b"data"].reshape([-1,32,32,3])]
+                    images = np.r_[images, dic[b"data"].reshape([-1,3,32,32])]
                     labels.append(dic[b"labels"])
             elif re.match("test_batch", file):          #load test data 
                 with open(self.path + "\\" + file , 'rb') as fo:
                     dic = pickle.load(fo, encoding = 'bytes')
-                    test_images = np.array(dic[b"data"].reshape([-1, 32, 32, 3]))
+                    test_images = np.array(dic[b"data"].reshape([-1, 3, 32, 32]))
                     test_labels = np.array(dic[b"labels"])
-        dic["train_images"] = images[10000:]
+        dic["train_images"] = images[10000:].transpose(0,2,3,1)
         dic["train_labels"] = np.array(labels).reshape([-1, 1]) 
-        dic["test_images"] = test_images
+        dic["test_images"] = test_images.transpose(0,2,3,1)
         dic["test_labels"] = test_labels.reshape([-1, 1])
         if self.one_hot == True:
             dic["train_labels"] = self._one_hot(dic["train_labels"], 10)
@@ -90,14 +90,13 @@ class Cifar10:
         return label_one_hot
 
 def load_cifar10(path, one_hot = True):
-     cifar10 = Cifar10(path, one_hot)
-     cifar10._load_data()
-     return cifar10
-
+    cifar10 = Cifar10(path, one_hot)
+    cifar10._load_data()
+    return cifar10
 
 if __name__ == "__main__":
     path = r"E:\pythonCode\TensorFlow\cifar10\cifar-10-batches-py"
-    cifar10 = load_cifar10(path, one_hot = True)
+    cifar10 = load_cifar10(path, one_hot = False)
     images = cifar10.images
     print("训练集图片：" + str(images.shape))
     labels = cifar10.labels
@@ -109,6 +108,22 @@ if __name__ == "__main__":
     batch_xs, batch_ys = cifar10.next_batch(batch_size = 500, shuffle = True)
     print("batch_xs shape is:" + str(batch_xs.shape))
     print("batch_ys shape is:" + str(batch_ys.shape))
+
+    #plot image
+    classes = ["plane", "car", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
+    num_classes = len(classes)
+    samples_per_class = 7
+    for y, clss in enumerate(classes):
+        idxs = np.flatnonzero(labels == y)
+        idxs = np.random.choice(idxs, samples_per_class, replace=False)
+        for i, idx in enumerate(idxs):
+            plt_idx = i * num_classes + y + 1
+            plt.subplot(samples_per_class, num_classes, plt_idx)
+            plt.imshow(images[idx].astype('uint8'))
+            plt.axis('off')
+            if i == 0:
+                plt.title(clss)
+    plt.show()
 
 
 
