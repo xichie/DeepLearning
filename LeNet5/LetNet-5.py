@@ -10,7 +10,7 @@ from scipy import misc
 '''
 class LeNet5:
     def __init__(self):
-        self.mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
+        self.mnist = input_data.read_data_sets('./LeNet5/MNIST_data', one_hot=True)
     def softmax(self, x):
         '''
             softmax function implements with numpy
@@ -26,29 +26,29 @@ class LeNet5:
             conv1_bias = tf.get_variable(name = "conv1_bias", shape = [6], initializer=tf.constant_initializer(0.0))
             conv1 = tf.nn.conv2d(input = input_tensor, filter = conv1_weight, strides = [1, 1, 1, 1], padding = "VALID")
             relu1 = tf.nn.relu(tf.add(conv1, conv1_bias))
-            pool1 = tf.nn.avg_pool(relu1, ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = "VALID")
+            pool1 = tf.nn.max_pool(relu1, ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = "VALID")
         with tf.variable_scope("layer2-conv2"):
             conv2_weight = tf.get_variable(name = "conv2_variable", shape=[5,5,6,16], initializer=tf.truncated_normal_initializer())
             conv2_bias = tf.get_variable(name = "conv2_bias", shape = [16], initializer=tf.constant_initializer(0.0))
             conv2 = tf.nn.conv2d(input = pool1, filter = conv2_weight, strides = [1, 1, 1, 1], padding = "VALID")
             relu2 = tf.nn.relu(tf.nn.bias_add(conv2, conv2_bias))
-            pool2 = tf.nn.avg_pool(relu2, ksize = [1,2,2,1], strides = [1,2,2,1], padding = "VALID")
+            pool2 = tf.nn.max_pool(relu2, ksize = [1,2,2,1], strides = [1,2,2,1], padding = "VALID")
         with tf.variable_scope("layer3-fc1"):
             conv_layer_flatten = tf.layers.flatten(inputs = pool2)      #[batch_size, 256]
-            fc1_variable = tf.get_variable(name = 'fc1_variable', shape = [256, 120], initializer = tf.random_normal_initializer()) * 0.01
-            fc1_bias = tf.get_variable(name = 'fc1_bias', shape = [1, 120], initializer = tf.constant_initializer(value=0))
+            fc1_variable = tf.get_variable(name = 'fc1_variable', shape = [256, 128], initializer = tf.random_normal_initializer()) * 0.01
+            fc1_bias = tf.get_variable(name = 'fc1_bias', shape = [1, 128], initializer = tf.constant_initializer(value=0))
             fc1 = tf.nn.relu(tf.add(tf.matmul(conv_layer_flatten, fc1_variable), fc1_bias))     #[batch_size, 120]
         with tf.variable_scope("layer4-fc2"):
-            fc2_variable = tf.get_variable(name = "fc2_variable", shape=[120,84], initializer=tf.random_normal_initializer())  * 0.01 #[batch_size, 84]
-            fc2_bias = tf.get_variable(name = "fc2_bias", shape=[1, 84],initializer = tf.constant_initializer(value=0))
+            fc2_variable = tf.get_variable(name = "fc2_variable", shape=[128,64], initializer=tf.random_normal_initializer())  * 0.01 #[batch_size, 84]
+            fc2_bias = tf.get_variable(name = "fc2_bias", shape=[1, 64],initializer = tf.constant_initializer(value=0))
             fc2 = tf.nn.relu(tf.add(tf.matmul(fc1, fc2_variable), fc2_bias))                    #[batch_size, 84]
         with tf.variable_scope("layer5-output"):
-            output_variable = tf.get_variable(name = "output_variable", shape = [84, 10],initializer = tf.random_normal_initializer()) * 0.01
+            output_variable = tf.get_variable(name = "output_variable", shape = [64, 10],initializer = tf.random_normal_initializer()) * 0.01
             output_bias = tf.get_variable(name = "output_bias", shape = [1, 10],initializer = tf.constant_initializer(value=0))
-            output = tf.nn.sigmoid(tf.add(tf.matmul(fc2, output_variable), output_bias))        #[batch_size, 10]
+            output = tf.add(tf.matmul(fc2, output_variable), output_bias)        #[batch_size, 10]
         return output
     #training model
-    def train(self, iter_num = 500, batch_size = 400, learning_rate = 0.1):
+    def train(self, iter_num = 500, batch_size = 400, learning_rate = 0.1, learning_rate_decay = 0.85):
         costs = []
         x = tf.placeholder(dtype = tf.float32, shape = [None, 28, 28, 1], name = "x")
         y = tf.placeholder(dtype = tf.float32, shape = [None, 10], name = "y")
@@ -65,7 +65,8 @@ class LeNet5:
                 batch_xs = batch_xs.reshape([-1, 28, 28, 1])
                 loss, _ = sess.run([cross_entropy, train_step], feed_dict={x: batch_xs, y: batch_ys})
                 costs.append(loss)
-                if i % 20 == 0:
+                if i % 100 == 0:
+                    learning_rate = learning_rate * learning_rate_decay ** (i /100)
                     print("loss after %d iteration is : "%(i) + str(loss))
             saver.save(sess, "./minstModel/model.ckpt")
         plt.figure()
@@ -85,7 +86,7 @@ class LeNet5:
             output = sess.run(output, feed_dict={x:images})
             y_pred = np.argmax(self.softmax(output), axis = 1).reshape(-1, 1)
             #print("y_pred shape is " + str(y_pred.shape))
-            accuracy = np.sum(y_pred == y_true) / len(y_pred)
+            accuracy = np.mean(y_pred == y_true)
             print("accuracy is " + str(accuracy))
 
     def predict(self, image):
@@ -103,30 +104,30 @@ class LeNet5:
     #
 if __name__ == "__main__":
     model = LeNet5()
-    image = Image.open(r"C:\Users\qjx\Desktop\IMG_1123.JPG")
-    print(image.size)
-    plt.figure()
-    ax = plt.subplot(1, 2, 1)
-    ax.imshow(image)
+    # image = Image.open(r"C:\Users\qjx\Desktop\IMG_1123.JPG")
+    # print(image.size)
+    # plt.figure()
+    # ax = plt.subplot(1, 2, 1)
+    # ax.imshow(image)
 
-    image = image.convert("L")
-    image.show()
-    image = misc.imresize(image, (28, 28, 1))
-    model.predict(image)
+    # image = image.convert("L")
+    # image.show()
+    # image = misc.imresize(image, (28, 28, 1))
+    # model.predict(image)
     
-    # model.train(iter_num=200)
+    model.train(iter_num=1000, batch_size=512, learning_rate = 0.1)
 
-    # #evaluate model on trainSet
-    # images_train = model.mnist.train.images
-    # y_true_train = model.mnist.train.labels
-    # images_train = images_train.reshape([-1, 28,28,1])
-    # y_true_train = np.argmax(y_true_train, axis=1).reshape(-1, 1)
-    # model.evaluate(images_train, y_true_train)          #accuracy is 0.9611818181818181
-    # #evaluate model on testSet
-    # images_test = model.mnist.test.images.reshape([-1, 28,28,1])
-    # y_true_test = model.mnist.test.labels
-    # y_true_test = np.argmax(y_true_test, axis = 1).reshape(-1, 1)
-    # model.evaluate(images_test, y_true_test)              #accuracy is 0.9645
+    #evaluate model on trainSet
+    images_train = model.mnist.train.images
+    y_true_train = model.mnist.train.labels
+    images_train = images_train.reshape([-1, 28,28,1])
+    y_true_train = np.argmax(y_true_train, axis=1).reshape(-1, 1)
+    model.evaluate(images_train, y_true_train)          #accuracy is 0.9939818181818182
+    #evaluate model on testSet
+    images_test = model.mnist.test.images.reshape([-1, 28,28,1])
+    y_true_test = model.mnist.test.labels
+    y_true_test = np.argmax(y_true_test, axis = 1).reshape(-1, 1)
+    model.evaluate(images_test, y_true_test)              #accuracy is 0.9897
     # #evaluate model on validate
     # images_validation = model.mnist.validation.images.reshape([-1, 28,28,1])
     # y_true_validation = model.mnist.validation.labels
