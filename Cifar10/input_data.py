@@ -68,15 +68,15 @@ class Cifar10:
                 np.random.shuffle(perm)
                 self._images = self.images[perm]
                 self._labels = self.labels[perm]
-                # Start next epoch
-                start = 0
-                self._index_in_epoch = batch_size - rest_num_examples
-                end = self._index_in_epoch
-                images_new_part = self._images[start:end]
-                labels_new_part = self._labels[start:end]
-                return np.concatenate(
-                    (images_rest_part, images_new_part), axis=0), np.concatenate(
-                        (labels_rest_part, labels_new_part), axis=0)
+            # Start next epoch
+            start = 0
+            self._index_in_epoch = batch_size - rest_num_examples
+            end = self._index_in_epoch
+            images_new_part = self._images[start:end]
+            labels_new_part = self._labels[start:end]
+            return np.concatenate(
+                (images_rest_part, images_new_part), axis=0), np.concatenate(
+                    (labels_rest_part, labels_new_part), axis=0)
         else:
             self._index_in_epoch += batch_size
             end = self._index_in_epoch
